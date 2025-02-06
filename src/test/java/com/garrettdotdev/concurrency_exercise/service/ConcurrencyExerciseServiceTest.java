@@ -48,7 +48,7 @@ class ConcurrencyExerciseServiceTest {
     }
 
     @Test
-    void testSemaphoreAllowsOnlyTwoConcurrentRequests() throws InterruptedException, ExecutionException {
+    void testSemaphoreAllowsOnlyTwoConcurrentRequests() {
         concurrencyExerciseService.setDelay(1000);
 
         try (ExecutorService executorService = Executors.newFixedThreadPool(3)) {
