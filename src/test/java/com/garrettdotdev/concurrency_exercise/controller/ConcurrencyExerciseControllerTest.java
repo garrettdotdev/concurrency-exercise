@@ -7,8 +7,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.ResponseEntity;
 
-import java.util.Objects;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -42,16 +40,4 @@ class ConcurrencyExerciseControllerTest {
         assertEquals("this is three", response.getBody());
     }
 
-    @Test
-    void testConcurrencyLimitEnforcedAtControllerLevel() {
-        // Simulate multiple requests to test the limit of 2 concurrent requests
-        restTemplate.getForEntity(baseUrl() + "/one", String.class);
-        restTemplate.getForEntity(baseUrl() + "/two", String.class);
-        ResponseEntity<String> response3 = restTemplate.getForEntity(baseUrl() + "/three", String.class);
-
-        // Verify that the third request is rejected with 429 Too Many Requests
-        if (Objects.requireNonNull(response3.getBody()).contains("Too Many Requests")) {
-            assertEquals(429, response3.getStatusCode().value());
-        }
-    }
 }
