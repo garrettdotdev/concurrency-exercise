@@ -1,17 +1,16 @@
 package com.garrettdotdev.concurrency_exercise.service;
 
+import java.util.List;
+import java.util.concurrent.*;
+
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class ConcurrencyExerciseServiceTest {
 
@@ -20,6 +19,11 @@ class ConcurrencyExerciseServiceTest {
     @BeforeEach
     void setUp() {
         concurrencyExerciseService = new ConcurrencyExerciseService();
+    }
+
+    @AfterEach
+    void clearDelayAfterTest() {
+        concurrencyExerciseService.clearDelay();
     }
 
     @Test
@@ -44,35 +48,45 @@ class ConcurrencyExerciseServiceTest {
     }
 
     @Test
-    void testSemaphoreAllowsOnlyTwoConcurrentRequests() throws InterruptedException {
-        ExecutorService executor = Executors.newFixedThreadPool(3);
-        CountDownLatch latch = new CountDownLatch(3); // Ensures proper coordination of threads
+    void testSemaphoreAllowsOnlyTwoConcurrentRequests() throws InterruptedException, ExecutionException {
+        concurrencyExerciseService.setDelay(1000);
 
-        // Results array to store responses
-        ResponseEntity<String>[] responses = new ResponseEntity[3];
+        try (ExecutorService executorService = Executors.newFixedThreadPool(3)) {
+            CountDownLatch latch = new CountDownLatch(1);
 
-        executor.submit(() -> {
-            responses[0] = concurrencyExerciseService.handleOne();
+            List<Callable<ResponseEntity<String>>> tasks = List.of(
+                () -> {
+                    latch.await();
+                    return concurrencyExerciseService.handleOne();
+                },
+                () -> {
+                    latch.await();
+                    return concurrencyExerciseService.handleTwo();
+                },
+                () -> {
+                    latch.await();
+                    return concurrencyExerciseService.handleThree();
+                }
+            );
+
+            List<Future<ResponseEntity<String>>> futures = tasks.stream()
+                .map(executorService::submit)
+                .toList();
+
             latch.countDown();
-        });
-        executor.submit(() -> {
-            responses[1] = concurrencyExerciseService.handleTwo();
-            latch.countDown();
-        });
-        executor.submit(() -> {
-            responses[2] = concurrencyExerciseService.handleThree();
-            latch.countDown();
-        });
 
-        latch.await(); // Wait for all threads to finish
+            Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
+                List<ResponseEntity<String>> responses = futures.stream()
+                    .map(this::getUnchecked)
+                    .toList();
 
-        // Verify the first two requests succeeded
-        assertEquals(HttpStatus.OK, responses[0].getStatusCode());
-        assertEquals(HttpStatus.OK, responses[1].getStatusCode());
+                assertEquals(HttpStatus.OK, responses.get(0).getStatusCode());
+                assertEquals(HttpStatus.OK, responses.get(1).getStatusCode());
 
-        // Verify the third request was rejected
-        assertEquals(HttpStatus.TOO_MANY_REQUESTS, responses[2].getStatusCode());
-        assertEquals("Too Many Requests", responses[2].getBody());
+                assertEquals(HttpStatus.TOO_MANY_REQUESTS, responses.get(2).getStatusCode());
+                assertEquals("Too Many Requests", responses.get(2).getBody());
+            });
+        }
     }
 
     @Test
@@ -84,5 +98,13 @@ class ConcurrencyExerciseServiceTest {
             assertNotNull(response1);
             assertNotNull(response2);
         });
+    }
+
+    private ResponseEntity<String> getUnchecked(Future<ResponseEntity<String>> future) {
+        try {
+            return future.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
