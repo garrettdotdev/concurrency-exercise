@@ -45,8 +45,8 @@ class ConcurrencyExerciseControllerTest {
     @Test
     void testConcurrencyLimitEnforcedAtControllerLevel() {
         // Simulate multiple requests to test the limit of 2 concurrent requests
-        ResponseEntity<String> response1 = restTemplate.getForEntity(baseUrl() + "/one", String.class);
-        ResponseEntity<String> response2 = restTemplate.getForEntity(baseUrl() + "/two", String.class);
+        restTemplate.getForEntity(baseUrl() + "/one", String.class);
+        restTemplate.getForEntity(baseUrl() + "/two", String.class);
         ResponseEntity<String> response3 = restTemplate.getForEntity(baseUrl() + "/three", String.class);
 
         // Verify that the third request is rejected with 429 Too Many Requests
