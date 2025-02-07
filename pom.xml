@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.garrettdotdev</groupId>
-	<artifactId>concurrency-exercise</artifactId>
+	<artifactId>concurrency_exercise</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>concurrency-exercise</name>
+	<name>concurrency_exercise</name>
 	<description>Exercise in concurrency control</description>
 	<url/>
 	<licenses>
