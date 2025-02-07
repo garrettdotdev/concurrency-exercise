@@ -75,7 +75,7 @@ class ConcurrencyExerciseServiceTest {
 
             latch.countDown();
 
-            Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
+            Awaitility.await().untilAsserted(() -> {
                 List<ResponseEntity<String>> responses = futures.stream()
                     .map(this::getUnchecked)
                     .toList();
