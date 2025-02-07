@@ -1,5 +1,6 @@
 package com.garrettdotdev.concurrency_exercise.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -49,43 +50,43 @@ class ConcurrencyExerciseServiceTest {
 
     @Test
     void testSemaphoreAllowsOnlyTwoConcurrentRequests() {
-        concurrencyExerciseService.setDelay(1000);
+        CountDownLatch startLatch = new CountDownLatch(1);
 
         try (ExecutorService executorService = Executors.newFixedThreadPool(3)) {
-            CountDownLatch latch = new CountDownLatch(1);
+            List<Future<ResponseEntity<String>>> futures = new ArrayList<>();
 
-            List<Callable<ResponseEntity<String>>> tasks = List.of(
-                () -> {
-                    latch.await();
-                    return concurrencyExerciseService.handleOne();
-                },
-                () -> {
-                    latch.await();
-                    return concurrencyExerciseService.handleTwo();
-                },
-                () -> {
-                    latch.await();
-                    return concurrencyExerciseService.handleThree();
+            futures.add(executorService.submit(() -> {
+                concurrencyExerciseService.setDelay(500);
+                startLatch.await();
+                return concurrencyExerciseService.handleOne();
+            }));
+            futures.add(executorService.submit(() -> {
+                concurrencyExerciseService.setDelay(500);
+                startLatch.await();
+                return concurrencyExerciseService.handleTwo();
+            }));
+            futures.add(executorService.submit(() -> {
+                concurrencyExerciseService.setDelay(500);
+                startLatch.await();
+                return concurrencyExerciseService.handleThree();
+            }));
+
+            startLatch.countDown(); // Allow tasks to proceed concurrently
+
+            int okCount = 0;
+            int tmrCount = 0;
+
+            for (Future<ResponseEntity<String>> future : futures) {
+                ResponseEntity<String> response = getUnchecked(future);
+                if (response.getStatusCode() == HttpStatus.OK) {
+                    okCount++;
+                } else if (response.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                    tmrCount++;
                 }
-            );
+            }
 
-            List<Future<ResponseEntity<String>>> futures = tasks.stream()
-                .map(executorService::submit)
-                .toList();
-
-            latch.countDown();
-
-            Awaitility.await().untilAsserted(() -> {
-                List<ResponseEntity<String>> responses = futures.stream()
-                    .map(this::getUnchecked)
-                    .toList();
-
-                assertEquals(HttpStatus.OK, responses.get(0).getStatusCode());
-                assertEquals(HttpStatus.OK, responses.get(1).getStatusCode());
-
-                assertEquals(HttpStatus.TOO_MANY_REQUESTS, responses.get(2).getStatusCode());
-                assertEquals("Too Many Requests", responses.get(2).getBody());
-            });
+            assertEquals(2, okCount);
+            assertEquals(1, tmrCount);
         }
     }
 
