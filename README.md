@@ -1,7 +1,7 @@
 # Concurrency Exercise
 ### A simple exercise in concurrency control in Java with Semaphore.
 
-![Build Status](https://img.shields.io/github/actions/workflow/status/garrettdotdev/concurrency_exercise/ci.yml?branch=main)
+![Build Status](https://img.shields.io/github/actions/workflow/status/garrettdotdev/concurrency_exercise/codecov.yml?branch=main)
 ![License](https://img.shields.io/github/license/garrettdotdev/concurrency_exercise)
 ![Coverage](https://img.shields.io/codecov/c/github/garrettdotdev/concurrency_exercise)
 ![Java](https://img.shields.io/badge/java-21-brightgreen)
